@@ -6,6 +6,7 @@ output:
   html_document: default
   pdf_document: default
 ---
+Grupo: 10
 
 ```{r setup, include=FALSE,collapse=TRUE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -16,24 +17,22 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Motivacion 
 
-Uno de los juegos más populares de la última década es el MOBA League of Legends, que es reconocido como uno de los juegos que más ha influenciado la escena de los videojuegos en estos años, en particular, ha propulsado la popularidad de los e-sports a nuevos límites. Nacido de un mod de Warcraft III,  otro famoso videojuego de la época de los 2000, League of Legends se da a notar por ser un juego de alta complejidad tanto en el aspecto mecánico (manejo del teclado y ratón),  como en el manejo estratégico de la información y la toma de decisiones, generando un escenario de alta competitividad entre jugadores. Debido a la popularidad de este, existe una gran cantidad de datos y estadísticas disponibles sobre el rendimiento de los jugadores, lo que nos otorga una oportunidad para analizar estos datos y nos lleva a preguntarnos si es posible identificar y analizar las acciones de un jugador dentro de una partida, para determinar qué aspectos influyen más en el desarrollo de esta, determinar patrones entre jugadores, e intentar dar explicación a estos.
+Uno de los juegos más populares de la última década es el MOBA League of Legends, que es reconocido como uno de los juegos que más ha influenciado la escena de los videojuegos en estos años, en particular los e-sports, que han visto crecer su popularidad exponencialmente. Nacido de un mod de Warcraft III,  otro famoso videojuego de la época de los 2000, League of Legends se da a notar por ser un juego de alta complejidad tanto en el aspecto mecánico (manejo del teclado y ratón),  como en el manejo estratégico de la información y la toma de decisiones, generando un escenario de alta competitividad entre jugadores. Debido a la popularidad de este, existe una gran cantidad de datos y estadísticas disponibles sobre el rendimiento de los jugadores, lo que nos otorga una oportunidad para analizar estos datos y nos lleva a preguntarnos si es posible identificar y analizar las acciones de un jugador dentro de una partida, para determinar qué aspectos influyen más en el desarrollo de esta, determinar patrones entre jugadores, e intentar dar explicación a estos.
 
 
 ## Exploracion de Datos 
 
-Este dataset fue recolectado por nosotros en particular para este proyecto, mediante el uso de la API que Riot Games ofrece de manera pública para este videojuego. En total fueron recolectados 514728 datos con fechas desde el 20 de julio de 2023 hasta el 1 de septiembre de 2023. Estos incluyen un gran número de estadísticas (55 atributos por dato) sobre los rendimientos de los jugadores en partidas jugadas entre las fechas mencionadas anteriormente, en la región LAS (latinoamérica sur) y solo en partidas competitivas (aquellas que influyen en el rango de habilidad presente dentro del juego). 
+Este dataset fue recolectado en particular para este proyecto, mediante el uso de la API que Riot Games ofrece de manera pública para League of Legends. En total fueron recolectados 514728 datos con fechas desde el 20 de julio de 2023 hasta el 1 de septiembre de 2023. Estos incluyen un gran número de estadísticas (51 atributos por dato) sobre los rendimientos de los jugadores en partidas jugadas entre las fechas mencionadas anteriormente, en la región LAS (latinoamérica sur) y solo en partidas competitivas (aquellas que influyen en el rango de habilidad presente dentro del juego). 
 
 Cada uno de los datos recolectados representa el rendimiento de un jugador en una partida particular. Entre los atributos recolectados se encuentran el rango del jugador, la duración de la partida,  el número de asesinatos, asistencias y muertes, el daño hecho/recibido hacia/desde otros jugadores, el rol del jugador dentro de la partida, y muchos otros.
 
 ```{r, collapse=TRUE}
 data <- read.csv("performances.csv")
-null_counts <- colSums(data == "null")
-total_rows <- nrow(data)
-null_percentages <- (null_counts / total_rows) * 100
+
 ```
 
 ### Limpieza de Datos
-Despues de una primera revisión decidimos hacer los siguientes cambios en los datos : 
+Despues de una primera revisión decidimos hacer los siguientes cambios en los datos: 
 
 1.-Transformar el atributo booleano win a un valor numerico binario.
 
@@ -103,9 +102,11 @@ legend("topright", legend = a, fill = rankcolor)
 
 La distribución observada se podría explicar por el hecho de que la muestra tomada fue aleatoria, y no necesariamente equitativa.
 
+
+
 #### Duración de una partida por rango
 ```{r echo=FALSE, collapse=TRUE}
-library(purrr)
+
 e <- c(mean(iron$game_duration), mean(bronce$game_duration), mean(silv$game_duration), mean(gold$game_duration), mean(plat$game_duration),mean(eme$game_duration) ,mean(diamond$game_duration), mean(master$game_duration), mean(gm$game_duration), mean(chall$game_duration))
 
 par(mar=c(8,4,2,2))
@@ -115,7 +116,8 @@ mtext("Rango",side=1,line=6)
 
 Se observa una ligera tendencia decreciente, es decir, entre mayor es el rango del jugador, menor es el tiempo promedio de duración de las partida.
 
-A continuación se seleccionaron los jugadores en la posición de soporte (La cual se llama "UTILITY") para comparar algunas estadísticas
+
+A continuación se seleccionaron los jugadores en la posición de soporte para comparar algunas estadísticas.
 ```{r}
 ironsupp <- iron[iron$teamPosition == "UTILITY",]
 broncesupp <- bronce[bronce$teamPosition == "UTILITY",]
@@ -128,6 +130,7 @@ mastersupp <- master[master$teamPosition == "UTILITY",]
 gmsupp <- gm[gm$teamPosition == "UTILITY",]
 challsupp <- chall[chall$teamPosition == "UTILITY",]
 ```
+
 
 
 #### Gráfico puntuación de vision de rol de Soporte por rango
@@ -143,11 +146,12 @@ mtext("Rango",side=1,line=6)
 
 Se observa una tendencia creciente, en donde, a mayor rango, mayor es la puntuación de visión promedio por partida.
 
+
+
 #### Gráfico pings por rango
 
-Los pings son alertas que pueden utilizar los jugadores para entregarles de manera rápida información valiosa a miembros de su equipo, como por ejemplo : "Voy en camino","Cuidado","Enemigo desaparecido", etc. 
-Para graficar la cantidad de pings por rango, nos enfocaremos, en primera instancia, solo en el rol de soporte. Primero necesitamos crear un nuevo atributo que
-sume todos los pings el cual se llamara totalpings, de esta manera podemos graficar la media de pings por partida de los jugadores que ocupan la posicion de soporte en cada rango.
+Los pings son alertas que pueden utilizar los jugadores para entregarles de manera rápida información valiosa a miembros de su equipo, como por ejemplo: "Voy en camino", "Cuidado", "Enemigo desaparecido", etc. 
+Para graficar la cantidad de pings por rango, nos enfocaremos, en primera instancia, solo en el rol de soporte.
 
 ```{r}
 
@@ -221,6 +225,8 @@ mtext("Rango",side=1,line=6)
 
 Se observa una tendencia creciente, en donde, a mayor rango, mayor es la cantidad de pings enviados por partida.
 
+
+
 #### Gráfico de las muertes por rol
 Se separaron los jugadores por rol para comparar las muertes que tenían en promedio en cada partida.
 ```{r}
@@ -232,11 +238,12 @@ middle<-data[data$teamPosition == "MIDDLE",]
 rolecolor<-c("red","green","gold","royalblue","purple")
 roles<- c("Superior", "Jungla", "Medio", "Inferior", "Soporte")
 muertes <- c(mean(top$deaths),mean(jungle$deaths),mean(middle$deaths),mean(bottom$deaths),mean(support$deaths))
-barplot(muertes,ylim = c(0,6),main = "Muertes por rol",names.arg=roles,ylab = "Muertes",las=2,col=rolecolor)
+barplot(muertes,ylim = c(0,6),main = "Promedio de muertes por rol",names.arg=roles,ylab = "Muertes",las=2,col=rolecolor)
 mtext("ROLE",side=1,line=6)
 ```
 
 Se observa que el rol del jugador no afecta en la tasa de muertes por partida.
+
 
 ## Preguntas y problemas 
 
@@ -249,7 +256,7 @@ En base a lo dicho anteriormente podemos hacernos ciertas preguntas sobre los da
 
 ¿Es posible determinar tendencias entre grupos de jugadores para categorizarlos (más allá del rango)?
 
-¿Cuáles son las diferencias más importantes entre jugadores de distinto rango de    habilidad?
+¿Cuáles son las diferencias más importantes entre jugadores de distinto rango de habilidad?
 
 
 ## Contribuciones
@@ -260,14 +267,14 @@ En base a lo dicho anteriormente podemos hacernos ciertas preguntas sobre los da
 
 -Cristian Salas: Discusión para el análisis y limpieza de datos, limpieza de datos inicial y general (Datos faltantes y atributos repetidos), creación de gráfico de análisis de duración de partida por rango, creación de gráfico de puntuación de vision por partida, sugerencias de preguntas y problemas.
  
--Gonzalo Cartes: Discusión para el análisis y limpieza de datos,creación de gráfico de puntuación de visión por partida,creación de gráfico pings de soportes por partida, redacción de la motivación del problema, sugerencias de preguntas y problemas, tipeo del informe.
+-Gonzalo Cartes: Discusión para el análisis y limpieza de datos, creación de gráfico de puntuación de visión por partida, creación de gráfico pings de soportes por partida, redacción de la motivación del problema, sugerencias de preguntas y problemas, tipeo del informe.
 
--Ignacio Jamett: Discusión para el análisis y limpieza de datos, sugerencias de preguntas y problemas,aprendió a jugar lol para aportar más al trabajo,creación de gráfico de puntuación de vision por partida.
+-Ignacio Jamett: Discusión para el análisis y limpieza de datos, sugerencias de preguntas y problemas, creación de gráfico de puntuación de vision por partida.
 
 ## Anexo
 
-El código utilizado para extraer los datos se encuentra en el siguiente repositorio:
+El código utilizado para extraer los datos y el archivo .rmd utilizado en el proyecto se encuentran en el siguiente repositorio:
 https://github.com/Stinguerx/DataMining-LoL
 
-Los datos extraídos y utilizados en este análisis, y el archivo Rmd utilizado en el proyecto se encuentran en el siguiente link:
+Los datos extraídos y utilizados en este análisis se encuentran en el siguiente link:
 https://drive.google.com/file/d/1YPgoi6b7ZIMmtHa3Sc45TIv-JysvF5fG/view?usp=sharing
