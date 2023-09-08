@@ -10,7 +10,7 @@ headers = {
     "Accept-Language": "en,es-419;q=0.9,es;q=0.8",
     "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
     "Origin": "https://developer.riotgames.com",
-    "X-Riot-Token": "RGAPI-1f68846f-3903-4de2-85af-e35179404f35"
+    "X-Riot-Token": ""
 }
 
 with open("puuids_true.txt", "r") as file:
