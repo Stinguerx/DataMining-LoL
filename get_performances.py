@@ -11,7 +11,7 @@ headers = {
     "Accept-Language": "en,es-419;q=0.9,es;q=0.8",
     "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
     "Origin": "https://developer.riotgames.com",
-    "X-Riot-Token": "RGAPI-f2dedee0-ecea-430a-bfc0-bcbf7b44a5cc"
+    "X-Riot-Token": ""
 }
 
 with open("matches2.txt", "r") as file:
