@@ -1,0 +1,273 @@
+---
+title: "Hito 1"
+author: "Gonzalo Cartes, Ignacio Jamett, Ignacio Mella, Alexis Morales, Cristian Salas"
+date: "2023-09-01"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE,collapse=TRUE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Analisis de rendimiento de jugadores de League of Legends
+
+
+## Motivacion 
+
+Uno de los juegos más populares de la última década es el MOBA League of Legends, que es reconocido como uno de los juegos que más ha influenciado la escena de los videojuegos en estos años, en particular, ha propulsado la popularidad de los e-sports a nuevos límites. Nacido de un mod de Warcraft III,  otro famoso videojuego de la época de los 2000, League of Legends se da a notar por ser un juego de alta complejidad tanto en el aspecto mecánico (manejo del teclado y ratón),  como en el manejo estratégico de la información y la toma de decisiones, generando un escenario de alta competitividad entre jugadores. Debido a la popularidad de este, existe una gran cantidad de datos y estadísticas disponibles sobre el rendimiento de los jugadores, lo que nos otorga una oportunidad para analizar estos datos y nos lleva a preguntarnos si es posible identificar y analizar las acciones de un jugador dentro de una partida, para determinar qué aspectos influyen más en el desarrollo de esta, determinar patrones entre jugadores, e intentar dar explicación a estos.
+
+
+## Exploracion de Datos 
+
+Este dataset fue recolectado por nosotros en particular para este proyecto, mediante el uso de la API que Riot Games ofrece de manera pública para este videojuego. En total fueron recolectados 514728 datos con fechas desde el 20 de julio de 2023 hasta el 1 de septiembre de 2023. Estos incluyen un gran número de estadísticas (55 atributos por dato) sobre los rendimientos de los jugadores en partidas jugadas entre las fechas mencionadas anteriormente, en la región LAS (latinoamérica sur) y solo en partidas competitivas (aquellas que influyen en el rango de habilidad presente dentro del juego). 
+
+Cada uno de los datos recolectados representa el rendimiento de un jugador en una partida particular. Entre los atributos recolectados se encuentran el rango del jugador, la duración de la partida,  el número de asesinatos, asistencias y muertes, el daño hecho/recibido hacia/desde otros jugadores, el rol del jugador dentro de la partida, y muchos otros.
+
+```{r, collapse=TRUE}
+data <- read.csv("performances.csv")
+null_counts <- colSums(data == "null")
+total_rows <- nrow(data)
+null_percentages <- (null_counts / total_rows) * 100
+```
+
+### Limpieza de Datos
+Despues de una primera revisión decidimos hacer los siguientes cambios en los datos : 
+
+1.-Transformar el atributo booleano win a un valor numerico binario.
+
+2.-Eliminar el atributo wardsKilled1 porque estaba duplicado.
+
+3.-Eliminar los juegos con una duración menor a 10 minutos, pues representan outliers en el dataset que podrían ensuciar los resultados.
+
+4.-Eliminar jugadores con posición no determinada.
+
+5.-Eliminar los jugadores que NO tienen rango, porque no aportan información valiosa.
+
+6.-Cambiar la unidad de medida de la duración de las partidas de segundos a minutos.
+
+7.-Eliminar las filas que contenian "null" en los atributos de tipo "challenge".
+
+Al finalizar la limpieza de datos se eliminaron aproximadamente 170000 filas, quedando un total de 339821 filas.
+
+```{r, collapse=TRUE}
+
+data$win[data$win == "True"] <- 1
+data$win[data$win == "False"] <- 0
+data <- data[,-34]
+data <- data[data$challenge_team_baron_kills != "null",]
+data <- data[data$challenge_kill_participation != "null",]
+data <- data[data$challenge_team_rift_herald_kills != "null",]
+data <- data[data$challenge_lane_minions_first_10_minutes != "null",]
+data <- data[data$challenge_turret_plates_taken != "null",]
+data <- data[data$game_duration >= 600,]
+data <- data[data$teamPosition != "",]
+data <- data[data$rank != "UNRANKED",]
+data$game_duration <- data$game_duration/60
+```
+
+Se separaron los datos por rango, para analizarlos posteriormente.
+
+```{r, collapse=TRUE}
+
+iron <- data[data$rank == "IRON",]
+bronce <- data[data$rank == "BRONZE",]
+silv <- data[data$rank == "SILVER",]
+gold <- data[data$rank == "GOLD",]
+plat <- data[data$rank == "PLATINUM",]
+eme <- data[data$rank == "EMERALD",]
+diamond <- data[data$rank == "DIAMOND",]
+master <- data[data$rank == "MASTER",]
+gm <- data[data$rank == "GRANDMASTER",]
+chall <- data[data$rank == "CHALLENGER",]
+```
+
+```{r, collapse=TRUE}
+# Rangos clasificatorios
+a <- c("Hierro", "Bronce", "Plata", "Oro", "Platino","Esmeralda", "Diamante", "Maestro", "Gran Maestro", "Retador")
+rankcolor = c("gray40","tan2","azure3","gold","deepskyblue","springgreen2","royalblue","purple","firebrick2","gold3")
+
+```
+### Analisis Exploratorio
+
+
+#### Distribucion de rango de los jugadores
+
+A continuación se muestra la cantidad de datos recogidos por rango .
+```{r, collapse=TRUE}
+distribucion <- c(nrow(iron), nrow(bronce), nrow(silv),  nrow(gold), nrow(plat),  nrow(eme), nrow(diamond),  nrow(master), nrow(gm), nrow(chall))
+pie(distribucion,labels = rep("", length(distribucion)), col = rankcolor, main = "Distribución de jugadores por rango")
+legend("topright", legend = a, fill = rankcolor)
+```
+
+La distribución observada se podría explicar por el hecho de que la muestra tomada fue aleatoria, y no necesariamente equitativa.
+
+#### Duración de una partida por rango
+```{r echo=FALSE, collapse=TRUE}
+library(purrr)
+e <- c(mean(iron$game_duration), mean(bronce$game_duration), mean(silv$game_duration), mean(gold$game_duration), mean(plat$game_duration),mean(eme$game_duration) ,mean(diamond$game_duration), mean(master$game_duration), mean(gm$game_duration), mean(chall$game_duration))
+
+par(mar=c(8,4,2,2))
+barplot(e, names.arg = a, ylab = "Duración en minutos",ylim = c(0, 35) , col = rankcolor, main = "Promedio de duración de una partida por rango", las = 2)
+mtext("Rango",side=1,line=6)
+```
+
+Se observa una ligera tendencia decreciente, es decir, entre mayor es el rango del jugador, menor es el tiempo promedio de duración de las partida.
+
+A continuación se seleccionaron los jugadores en la posición de soporte (La cual se llama "UTILITY") para comparar algunas estadísticas
+```{r}
+ironsupp <- iron[iron$teamPosition == "UTILITY",]
+broncesupp <- bronce[bronce$teamPosition == "UTILITY",]
+silversupp <- silv[silv$teamPosition == "UTILITY",]
+goldsupp <- gold[gold$teamPosition == "UTILITY",]
+platsupp <- plat[plat$teamPosition == "UTILITY",]
+emesupp <- eme[eme$teamPosition == "UTILITY",]
+diamondsupp <- diamond[diamond$teamPosition == "UTILITY",]
+mastersupp <- master[master$teamPosition == "UTILITY",]
+gmsupp <- gm[gm$teamPosition == "UTILITY",]
+challsupp <- chall[chall$teamPosition == "UTILITY",]
+```
+
+
+#### Gráfico puntuación de vision de rol de Soporte por rango
+
+La puntuación de visión es un valor numérico que aumenta a medida que se ubican, revelan o destruyen centinelas (objetos que eliminan la niebla de guerra en un área alrededor de ellos), es por esto que la puntuación de visión refleja la cantidad de información que adquieren los jugadores a través de los centinelas. La elección del rol de soporte para esta gráfica se debe al hecho que una de sus funciones principales es la obtención de información. 
+
+```{r}
+b <- c(mean(ironsupp$visionScore), mean(broncesupp$visionScore), mean(silversupp$visionScore), mean(goldsupp$visionScore), mean(platsupp$visionScore),mean(emesupp$visionScore), mean(diamondsupp$visionScore), mean(mastersupp$visionScore), mean(gmsupp$visionScore), mean(challsupp$visionScore))
+par(mar=c(8,4,2,2))
+barplot(b,main = "Promedio de puntaje de visión de un soporte según su rango",names.arg=a,ylab = "Puntaje de visión",las=2,col=rankcolor)
+mtext("Rango",side=1,line=6)
+```
+
+Se observa una tendencia creciente, en donde, a mayor rango, mayor es la puntuación de visión promedio por partida.
+
+#### Gráfico pings por rango
+
+Los pings son alertas que pueden utilizar los jugadores para entregarles de manera rápida información valiosa a miembros de su equipo, como por ejemplo : "Voy en camino","Cuidado","Enemigo desaparecido", etc. 
+Para graficar la cantidad de pings por rango, nos enfocaremos, en primera instancia, solo en el rol de soporte. Primero necesitamos crear un nuevo atributo que
+sume todos los pings el cual se llamara totalpings, de esta manera podemos graficar la media de pings por partida de los jugadores que ocupan la posicion de soporte en cada rango.
+
+```{r}
+
+# Iron
+
+ironsupp$totalpings <- ironsupp$pushPings+ironsupp$baitPings+ironsupp$holdPings+ironsupp$allInPings+ironsupp$basicPings+ironsupp$dangerPings+ironsupp$commandPings+ironsupp$getBackPings+
+     ironsupp$onMyWayPings+ironsupp$assistMePings+ironsupp$needVisionPings+
+     ironsupp$enemyVisionPings+ironsupp$enemyMissingPings+ironsupp$visionClearedPings
+
+# Bronce 
+
+broncesupp$totalpings <- broncesupp$pushPings+broncesupp$baitPings+broncesupp$holdPings+broncesupp$allInPings+broncesupp$basicPings+broncesupp$dangerPings+broncesupp$commandPings+broncesupp$getBackPings+
+     broncesupp$onMyWayPings+broncesupp$assistMePings+broncesupp$needVisionPings+
+     broncesupp$enemyVisionPings+broncesupp$enemyMissingPings+broncesupp$visionClearedPings
+
+
+# Platita
+
+silversupp$totalpings <- silversupp$pushPings+silversupp$baitPings+silversupp$holdPings+silversupp$allInPings+silversupp$basicPings+silversupp$dangerPings+silversupp$commandPings+silversupp$getBackPings+
+     silversupp$onMyWayPings+silversupp$assistMePings+silversupp$needVisionPings+
+     silversupp$enemyVisionPings+silversupp$enemyMissingPings+silversupp$visionClearedPings
+# Orito
+
+goldsupp$totalpings <- goldsupp$pushPings+goldsupp$baitPings+goldsupp$holdPings+goldsupp$allInPings+goldsupp$basicPings+goldsupp$dangerPings+goldsupp$commandPings+goldsupp$getBackPings+
+     goldsupp$onMyWayPings+goldsupp$assistMePings+goldsupp$needVisionPings+
+     goldsupp$enemyVisionPings+goldsupp$enemyMissingPings+goldsupp$visionClearedPings
+
+# Platino
+
+platsupp$totalpings <- platsupp$pushPings+platsupp$baitPings+platsupp$holdPings+platsupp$allInPings+platsupp$basicPings+platsupp$dangerPings+platsupp$commandPings+platsupp$getBackPings+
+     platsupp$onMyWayPings+platsupp$assistMePings+platsupp$needVisionPings+
+     platsupp$enemyVisionPings+platsupp$enemyMissingPings+platsupp$visionClearedPings
+
+# Esmeralda
+
+emesupp$totalpings <- emesupp$pushPings+emesupp$baitPings+emesupp$holdPings+emesupp$allInPings+emesupp$basicPings+emesupp$dangerPings+emesupp$commandPings+emesupp$getBackPings+
+     emesupp$onMyWayPings+emesupp$assistMePings+emesupp$needVisionPings+
+     emesupp$enemyVisionPings+emesupp$enemyMissingPings+emesupp$visionClearedPings
+
+# Diamante
+
+diamondsupp$totalpings <- diamondsupp$pushPings+diamondsupp$baitPings+diamondsupp$holdPings+diamondsupp$allInPings+diamondsupp$basicPings+diamondsupp$dangerPings+diamondsupp$commandPings+diamondsupp$getBackPings+
+     diamondsupp$onMyWayPings+diamondsupp$assistMePings+diamondsupp$needVisionPings+
+     diamondsupp$enemyVisionPings+diamondsupp$enemyMissingPings+diamondsupp$visionClearedPings
+
+# Master
+
+mastersupp$totalpings <- mastersupp$pushPings+mastersupp$baitPings+mastersupp$holdPings+mastersupp$allInPings+mastersupp$basicPings+mastersupp$dangerPings+mastersupp$commandPings+mastersupp$getBackPings+
+     mastersupp$onMyWayPings+mastersupp$assistMePings+mastersupp$needVisionPings+
+     mastersupp$enemyVisionPings+mastersupp$enemyMissingPings+mastersupp$visionClearedPings
+
+# GrandMaster
+
+gmsupp$totalpings <- gmsupp$pushPings+gmsupp$baitPings+gmsupp$holdPings+gmsupp$allInPings+gmsupp$basicPings+gmsupp$dangerPings+gmsupp$commandPings+gmsupp$getBackPings+
+     gmsupp$onMyWayPings+gmsupp$assistMePings+gmsupp$needVisionPings+
+     gmsupp$enemyVisionPings+gmsupp$enemyMissingPings+gmsupp$visionClearedPings
+
+# Challenger
+
+challsupp$totalpings <- challsupp$pushPings+challsupp$baitPings+challsupp$holdPings+challsupp$allInPings+challsupp$basicPings+challsupp$dangerPings+challsupp$commandPings+challsupp$getBackPings+
+     challsupp$onMyWayPings+challsupp$assistMePings+challsupp$needVisionPings+
+     challsupp$enemyVisionPings+challsupp$enemyMissingPings+challsupp$visionClearedPings
+
+d <- c(mean(ironsupp$totalpings), mean(broncesupp$totalpings), mean(silversupp$totalpings), mean(goldsupp$totalpings), mean(platsupp$totalpings),mean(emesupp$totalpings), mean(diamondsupp$totalpings), mean(mastersupp$totalpings), mean(gmsupp$totalpings), mean(challsupp$totalpings))
+
+par(mar=c(8,4,2,2))
+barplot(d,ylim = c(0,40),main = "Promedio de pings de un soporte por rango",names.arg=a,ylab = "Cantidad de Pings",las=2,col=rankcolor)
+mtext("Rango",side=1,line=6)
+
+```
+
+Se observa una tendencia creciente, en donde, a mayor rango, mayor es la cantidad de pings enviados por partida.
+
+#### Gráfico de las muertes por rol
+Se separaron los jugadores por rol para comparar las muertes que tenían en promedio en cada partida.
+```{r}
+support<-data[data$teamPosition == "UTILITY",]
+jungle<-data[data$teamPosition == "JUNGLE",]
+top<-data[data$teamPosition == "TOP",]
+bottom<-data[data$teamPosition == "BOTTOM",]
+middle<-data[data$teamPosition == "MIDDLE",]
+rolecolor<-c("red","green","gold","royalblue","purple")
+roles<- c("Superior", "Jungla", "Medio", "Inferior", "Soporte")
+muertes <- c(mean(top$deaths),mean(jungle$deaths),mean(middle$deaths),mean(bottom$deaths),mean(support$deaths))
+barplot(muertes,ylim = c(0,6),main = "Muertes por rol",names.arg=roles,ylab = "Muertes",las=2,col=rolecolor)
+mtext("ROLE",side=1,line=6)
+```
+
+Se observa que el rol del jugador no afecta en la tasa de muertes por partida.
+
+## Preguntas y problemas 
+
+En base a lo dicho anteriormente podemos hacernos ciertas preguntas sobre los datos que nos permitan analizar y extraer información sobre estos. Algunas de las preguntas de mayor interés que podrían ser respondidas son:
+
+
+¿Cuáles son los factores más determinantes en el índice de victorias de un jugador?
+
+¿Es posible determinar una relación entre la comunicación mediante pings y otros atributos? 
+
+¿Es posible determinar tendencias entre grupos de jugadores para categorizarlos (más allá del rango)?
+
+¿Cuáles son las diferencias más importantes entre jugadores de distinto rango de    habilidad?
+
+
+## Contribuciones
+
+-Ignacio Mella: Extracción y recopilación de datos, creación de presentación, redacción de exploración de datos párrafos 1 y 2, redacción de la motivación del problema, creación del repositorio, sugerencias de preguntas y problemas.
+
+-Alexis Morales: Discusión para el análisis y limpieza de datos,diseño extraordinario, separación de los datos por roles, creación del gráfico de muertes por rol y separación del dataset por roles, sugerencias de preguntas y problemas.
+
+-Cristian Salas: Discusión para el análisis y limpieza de datos, limpieza de datos inicial y general (Datos faltantes y atributos repetidos), creación de gráfico de análisis de duración de partida por rango, creación de gráfico de puntuación de vision por partida, sugerencias de preguntas y problemas.
+ 
+-Gonzalo Cartes: Discusión para el análisis y limpieza de datos,creación de gráfico de puntuación de visión por partida,creación de gráfico pings de soportes por partida, redacción de la motivación del problema, sugerencias de preguntas y problemas, tipeo del informe.
+
+-Ignacio Jamett: Discusión para el análisis y limpieza de datos, sugerencias de preguntas y problemas,aprendió a jugar lol para aportar más al trabajo,creación de gráfico de puntuación de vision por partida.
+
+## Anexo
+
+El código utilizado para extraer los datos se encuentra en el siguiente repositorio:
+https://github.com/Stinguerx/DataMining-LoL
+
+Los datos extraídos y utilizados en este análisis, y el archivo Rmd utilizado en el proyecto se encuentran en el siguiente link:
+https://drive.google.com/file/d/1YPgoi6b7ZIMmtHa3Sc45TIv-JysvF5fG/view?usp=sharing
