@@ -6,7 +6,7 @@ headers = {
     "Accept-Language": "en,es-419;q=0.9,es;q=0.8",
     "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
     "Origin": "https://developer.riotgames.com",
-    "X-Riot-Token": "RGAPI-ed5031e9-45d6-446c-aa47-355ab323baac"
+    "X-Riot-Token": ""
 }
 
 tiers = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND']
